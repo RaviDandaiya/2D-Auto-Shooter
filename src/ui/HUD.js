@@ -86,9 +86,8 @@ export default class HUD {
         // Initial Draw
         this.draw();
 
-        // Register update listener
-        this.scene.events.off('update');
-        this.scene.events.on('update', (time, delta) => {
+        // Register update listener cleanly
+        this.updateListener = (time, delta) => {
             this.shakeTime += delta;
 
             // Glitch effect for Cyberpunk
@@ -106,6 +105,16 @@ export default class HUD {
                 this.theme.styles.runes) {
                 this.draw();
             }
+        };
+
+        // Remove existing if present to avoid dupes (using named function reference if stored)
+        // Since we are creating new HUD each time, we should just add it.
+        // But better to be safe:
+        this.scene.events.on('update', this.updateListener);
+
+        // Clean up on destroy
+        this.scene.events.once('shutdown', () => {
+            this.scene.events.off('update', this.updateListener);
         });
     }
 
@@ -210,7 +219,7 @@ export default class HUD {
     updateTime(seconds) {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
-        this.timeText.setText(`${mins.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+        this.timeText.setText(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
     }
 
     updateKills(count) {
