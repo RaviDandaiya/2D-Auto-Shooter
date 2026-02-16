@@ -9,7 +9,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        // Preload assets if any. Since we are using shapes for now, we don't need much.
+        this.load.svg('player', 'assets/player.svg', { width: 64, height: 64 });
+        this.load.svg('enemy', 'assets/enemy.svg', { width: 48, height: 48 });
+        this.load.svg('bullet', 'assets/bullet.svg', { width: 32, height: 32 });
     }
 
     create() {
@@ -34,20 +36,47 @@ export class GameScene extends Phaser.Scene {
         // 1. Create a large world arena
         const worldSize = 2500;
         this.physics.world.setBounds(0, 0, worldSize, worldSize);
-        this.cameras.main.setBackgroundColor(this.theme.colors.bg);
 
-        // 2. Add a grid background
-        const graphics = this.add.graphics();
-        const gridColor = this.theme.id === 'NEON' ? 0x444444 : 0x221111;
-        graphics.lineStyle(2, gridColor, 0.5);
+        // 2. Space Background (Theme Aware)
+        // Dark deep space background - slight tint based on theme
+        const bgColor = this.theme.colors.bg;
+        // Convert to hex string if it's a number (Phaser handles both but setBackgroundColor string is safe)
+        const bgColorString = typeof bgColor === 'number' ? `#${bgColor.toString(16).padStart(6, '0')}` : bgColor;
 
-        for (let i = 0; i <= worldSize; i += 100) {
-            graphics.moveTo(i, 0);
-            graphics.lineTo(i, worldSize);
-            graphics.moveTo(0, i);
-            graphics.lineTo(worldSize, i);
+        this.cameras.main.setBackgroundColor(bgColorString);
+
+        // Star Colors
+        const starColor = this.theme.id === 'CYBERPUNK' ? 0xff00ff :
+            (this.theme.id === 'CRIMSON' ? 0xff5555 : 0xaaccff);
+
+        // Layer 1: Distant Stars (Small, Slowly moving)
+        if (!this.textures.exists('stars_far')) {
+            const stars = this.add.graphics();
+            stars.fillStyle(starColor, 0.5);
+            for (let i = 0; i < 1500; i++) {
+                stars.fillCircle(Phaser.Math.Between(0, 2048), Phaser.Math.Between(0, 2048), 1);
+            }
+            stars.generateTexture('stars_far', 2048, 2048);
+            stars.destroy();
         }
-        graphics.strokePath();
+
+        // Layer 2: Close Stars (Brighter, Faster moving)
+        if (!this.textures.exists('stars_near')) {
+            const stars = this.add.graphics();
+            stars.fillStyle(0xffffff, 0.8);
+            for (let i = 0; i < 500; i++) {
+                stars.fillCircle(Phaser.Math.Between(0, 2048), Phaser.Math.Between(0, 2048), Math.random() < 0.5 ? 2 : 3);
+            }
+            stars.generateTexture('stars_near', 2048, 2048);
+            stars.destroy();
+        }
+
+        // Tiling background for depth (Parallax)
+        this.bgStars1 = this.add.tileSprite(0, 0, this.scale.width, this.scale.height, 'stars_far')
+            .setScrollFactor(0).setOrigin(0).setAlpha(0.2); // Reduced opacity
+
+        this.bgStars2 = this.add.tileSprite(0, 0, this.scale.width, this.scale.height, 'stars_near')
+            .setScrollFactor(0).setOrigin(0).setAlpha(0.4); // Reduced opacity
 
         // Ambient Effects (Gothic)
         if (this.theme.particles.embers) {
@@ -56,6 +85,11 @@ export class GameScene extends Phaser.Scene {
         if (this.theme.particles.fog) {
             this.createAmbientFog(worldSize);
         }
+
+        this.scale.on('resize', (gameSize) => {
+            if (this.bgStars1) this.bgStars1.setSize(gameSize.width, gameSize.height);
+            if (this.bgStars2) this.bgStars2.setSize(gameSize.width, gameSize.height);
+        });
 
         // 3. Create Groups for Combat
         this.enemies = this.physics.add.group();
@@ -70,17 +104,27 @@ export class GameScene extends Phaser.Scene {
         // NUCLEAR OPTION: Remove all children first just in case
         this.player.removeAll(true);
 
-        // Player Body
-        const playerBody = this.add.circle(0, 0, 20, 0x00ff00);
+        // Player Sprite
+        const playerSprite = this.add.image(0, 0, 'player');
+        playerSprite.setDisplaySize(50, 50);
 
-        // RESTORED ARROW (Green Triangle)
-        const playerDirection = this.add.triangle(0, -25, -10, 0, 10, 0, 0, -10, 0x00ff00);
+        // Player Name Tag
+        const names = ['Starfighter', 'Pilot X', 'Neon Ace', 'Viper', 'Nova', 'Cyber-01'];
+        const randomName = names[Phaser.Math.Between(0, names.length - 1)];
+        const nameText = this.add.text(0, -50, randomName, {
+            fontSize: '14px',
+            fontFamily: 'Orbitron, Arial',
+            fill: '#00ffff'
+        }).setOrigin(0.5);
 
-        this.player.add([playerBody, playerDirection]);
+        this.player.add([playerSprite, nameText]);
 
         this.physics.add.existing(this.player);
-        this.player.body.setSize(40, 40);
-        this.player.body.setOffset(-20, -20);
+        // Player is a Container.
+        // It's generally better to give the physics body to the container.
+        // Set circular body for player too.
+        this.player.body.setCircle(20);
+        this.player.body.setOffset(-20, -20); // Containers need explicit offset to center body on (0,0)
         this.player.body.setCollideWorldBounds(true);
         console.log('GameScene: Player physics initialized');
 
@@ -88,10 +132,10 @@ export class GameScene extends Phaser.Scene {
         this.time.timeScale = 1;
         this.physics.resume();
 
-        // Re-adjust stats for velocity-based movement
+        // Adjusted Stats for better early game flow (Action: Buff Fire Rate)
         this.playerStats = {
             moveSpeed: 300,
-            fireRate: 800,
+            fireRate: 500, // Reduced from 800ms
             damage: 20,
             weaponLevel: 0,
             circularLevel: 0,
@@ -257,22 +301,33 @@ export class GameScene extends Phaser.Scene {
     }
 
     spawnEnemy() {
-        const worldSize = 2500;
-        let x, y;
-        const edge = Phaser.Math.Between(0, 3);
+        if (!this.player) return;
 
-        switch (edge) {
-            case 0: x = Phaser.Math.Between(0, worldSize); y = 0; break;
-            case 1: x = Phaser.Math.Between(0, worldSize); y = worldSize; break;
-            case 2: x = 0; y = Phaser.Math.Between(0, worldSize); break;
-            case 3: x = worldSize; y = Phaser.Math.Between(0, worldSize); break;
-        }
+        // SPAWN VISIBLE: Spawn effectively "just off screen" around the player
+        // Screen diagonal is ~1500. Radius 800 is safe.
+        const angle = Phaser.Math.Between(0, 360);
+        const distance = Phaser.Math.Between(700, 900); // Close enough to arrive in 2-3 seconds
+
+        let x = this.player.x + Math.cos(angle) * distance;
+        let y = this.player.y + Math.sin(angle) * distance;
+
+        // Clamp to world
+        const worldSize = 2500;
+        x = Phaser.Math.Clamp(x, 50, worldSize - 50);
+        y = Phaser.Math.Clamp(y, 50, worldSize - 50);
 
         let type = 'normal';
         let color = 0xff0000;
         let radius = 15;
-        let hp = 30 + (this.playerLevel * 5) + (Math.floor(this.gameTime / 60) * 20);
-        let speed = 150;
+        // Buffed Early Game HP (Still 1-shot for 20dmg, but "tougher")
+        let hp = 10;
+
+        // Scale up after 60 seconds (Base 25->30, Scale 20->25)
+        if (this.gameTime > 60) {
+            hp = 30 + (this.playerLevel * 6) + (Math.floor((this.gameTime - 60) / 60) * 25);
+        }
+
+        let speed = 180; // Buffed from 150
 
         if (this.gameTime >= 120) {
             const chance = Phaser.Math.Between(0, 100);
@@ -280,7 +335,7 @@ export class GameScene extends Phaser.Scene {
                 type = 'charger';
                 color = 0xffaa00;
                 radius = 12;
-                speed = 250;
+                speed = 300; // Buffed from 250
                 hp = hp * 0.6;
             }
         }
@@ -296,10 +351,20 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
-        const enemy = this.add.circle(x, y, radius, color);
+        const enemy = this.add.image(x, y, 'enemy');
+        const displaySize = radius * 2.5;
+        enemy.setDisplaySize(displaySize, displaySize);
+        enemy.setTint(color);
         this.enemies.add(enemy);
         this.physics.add.existing(enemy);
+
+        // Circular Body - Explicit centering
+        // Texture is 48x48. Radius 24 = Full Width.
+        enemy.body.setCircle(24);
+        // No offset needed if 24 is exactly half of 48.
+
         enemy.body.setCollideWorldBounds(true);
+        enemy.body.onWorldBounds = true;
 
         enemy.heading = new Phaser.Math.Vector2();
         enemy.hp = hp;
@@ -428,11 +493,12 @@ export class GameScene extends Phaser.Scene {
     }
 
     createBullet(target, angleOffset) {
-        const bullet = this.add.circle(this.player.x, this.player.y, 5, 0xffff00);
+        // Use 'bullet' sprite instead of circle
+        const bullet = this.add.image(this.player.x, this.player.y, 'bullet');
         this.projectiles.add(bullet);
 
         const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) + angleOffset;
-        const speed = 600;
+        const speed = 900; // Increased from 600 for reliable hits
 
         this.physics.add.existing(bullet);
         bullet.body.setVelocity(
@@ -440,6 +506,9 @@ export class GameScene extends Phaser.Scene {
             Math.sin(angle) * speed
         );
         bullet.damage = this.playerStats.damage;
+
+        // Large hitbox for bullets
+        bullet.body.setCircle(12); // Generous hit radius
 
         this.time.delayedCall(2000, () => {
             if (bullet.active) bullet.destroy();
@@ -515,12 +584,9 @@ export class GameScene extends Phaser.Scene {
             this.showDamageNumber(enemy.x, enemy.y, damage, isCrit);
 
             // Visual hit effect
-            this.tweens.addCounter({
-                from: 255,
-                to: 0,
-                duration: 100,
-                onUpdate: () => enemy.setFillStyle(0xffffff),
-                onComplete: () => enemy.setFillStyle(enemy.baseColor || 0xff0000)
+            enemy.setTintFill(0xffffff);
+            this.time.delayedCall(100, () => {
+                if (enemy.active) enemy.setTint(enemy.baseColor || 0xffffff);
             });
 
             if (projectile.penetration <= 0) projectile.destroy();
@@ -531,12 +597,9 @@ export class GameScene extends Phaser.Scene {
             this.showDamageNumber(enemy.x, enemy.y, damage, isCrit);
 
             // Visual hit effect
-            this.tweens.addCounter({
-                from: 255,
-                to: 0,
-                duration: 100,
-                onUpdate: () => enemy.setFillStyle(0xffffff),
-                onComplete: () => enemy.setFillStyle(enemy.baseColor || 0xff0000)
+            enemy.setTintFill(0xffffff);
+            this.time.delayedCall(100, () => {
+                if (enemy.active) enemy.setTint(enemy.baseColor || 0xffffff);
             });
         }
 
@@ -606,7 +669,7 @@ export class GameScene extends Phaser.Scene {
     handlePlayerDamage(player, enemy) {
         this.soundManager.playTone(100, 'sawtooth', 0.3, -50); // Deep hurt sound
         enemy.destroy();
-        this.playerHealth -= 10;
+        this.playerHealth -= 12; // Increased damage (+20%)
         this.hud.updateHealth(this.playerHealth, this.maxHealth);
         this.cameras.main.shake(200, 0.02); // Strong shake on hurt
 
@@ -643,11 +706,15 @@ export class GameScene extends Phaser.Scene {
         if (!this.player || !this.player.body) return;
 
         // Ensure stats exist
-        const speed = (this.playerStats && this.playerStats.moveSpeed) ? this.playerStats.moveSpeed : 250;
+        const maxSpeed = (this.playerStats && this.playerStats.moveSpeed) ? this.playerStats.moveSpeed : 300;
         const body = this.player.body;
 
-        // Reset
-        body.setVelocity(0);
+        // ACCELERATION BASED MOVEMENT (ULTRA RESPONSIVE - SENSITIVE)
+        const acceleration = 6000; // Instant torque
+        const drag = 3500;         // Instant grip
+
+        body.setDrag(drag);
+        body.setMaxVelocity(maxSpeed);
 
         let moveX = 0;
         let moveY = 0;
@@ -663,18 +730,30 @@ export class GameScene extends Phaser.Scene {
         if (moveX !== 0 || moveY !== 0) {
             // Normalize
             const angle = Math.atan2(moveY, moveX);
-            const velocityX = Math.cos(angle) * speed;
-            const velocityY = Math.sin(angle) * speed;
+            const accelX = Math.cos(angle) * acceleration;
+            const accelY = Math.sin(angle) * acceleration;
 
-            body.setVelocity(velocityX, velocityY);
+            body.setAcceleration(accelX, accelY);
 
-            // Rotation
+            // Rotation (Rotate towards movement direction, but smoother)
+            // Increased sensitivity significantly (0.1 -> 0.3)
             const targetRotation = angle + Math.PI / 2;
             this.player.rotation = Phaser.Math.Angle.RotateTo(
                 this.player.rotation,
                 targetRotation,
-                0.15
+                0.3 // Fast rotation
             );
+        } else {
+            body.setAcceleration(0);
+        }
+
+        // Parallax Background
+        if (this.bgStars1 && this.bgStars2) {
+            this.bgStars1.tilePositionX = this.cameras.main.scrollX * 0.3;
+            this.bgStars1.tilePositionY = this.cameras.main.scrollY * 0.3;
+
+            this.bgStars2.tilePositionX = this.cameras.main.scrollX * 0.6;
+            this.bgStars2.tilePositionY = this.cameras.main.scrollY * 0.6;
         }
 
         // Camera Follow Polish
@@ -683,7 +762,8 @@ export class GameScene extends Phaser.Scene {
         // Enemy AI
         this.enemies.getChildren().forEach(enemy => {
             if (enemy.active) {
-                this.physics.moveToObject(enemy, this.player, 150);
+                this.physics.moveToObject(enemy, this.player, enemy.speed || 150);
+                enemy.rotation = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y) + Math.PI / 2;
             }
         });
     }

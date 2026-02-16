@@ -36,6 +36,16 @@ export default class HUD {
         this.container = this.scene.add.container(0, 0).setScrollFactor(0);
         this.container.setDepth(100);
 
+        // Optional: darken top bar area for readability
+        if (!this.theme.styles.flat) {
+            const topBarBg = this.scene.add.graphics();
+            topBarBg.fillStyle(0x000000, 0.4);
+            topBarBg.fillRect(0, 0, this.width, 80);
+            // Fade out at bottom
+            // (Simple rect for now)
+            this.container.add(topBarBg);
+        }
+
         // --- Graphics Objects ---
         this.barGraphics = this.scene.add.graphics().setScrollFactor(0);
         this.container.add(this.barGraphics);
@@ -244,8 +254,8 @@ export default class HUD {
         const hpPercent = Math.max(0, this.visualHealth / this.maxHealth);
         let hpX = 20;
         const hpY = 30;
-        const hpW = 200;
-        const hpH = theme.styles.pixelated ? 24 : 20;
+        const hpW = 240; // Wider
+        const hpH = theme.styles.pixelated ? 28 : 24; // Taller
         const radius = theme.styles.hpRadius;
 
         if (!theme.styles.flat && hpPercent < 0.3 && hpPercent > 0) {
@@ -311,10 +321,10 @@ export default class HUD {
         }
 
         // --- XP Bar (Bottom Center) ---
-        let xpW = Math.min(600, this.width - 40);
-        let xpH = theme.styles.pixelated ? 16 : 14;
+        let xpW = Math.min(800, this.width - 40); // Much wider
+        let xpH = theme.styles.pixelated ? 20 : 18; // Taller
         let xpX = (this.width - xpW) / 2;
-        let xpY = this.height - (theme.styles.pixelated ? 35 : 30);
+        let xpY = this.height - (theme.styles.pixelated ? 40 : 35);
         const xpRadius = theme.styles.xpRadius;
 
         if (!theme.styles.flat && this.visualXP >= this.requiredXP) {

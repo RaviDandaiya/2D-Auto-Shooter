@@ -1,14 +1,14 @@
 export const THEMES = {
     CYBERPUNK: {
         id: 'CYBERPUNK',
-        name: 'CYBERPUNK',
+        name: 'NEON CYBERPUNK',
         font: 'Orbitron, Arial',
         colors: {
             primary: 0xff00ff,
             secondary: 0x00ffff,
             health: 0xff00ff,
             xp: 0x00ffff,
-            bg: 0x050005,
+            bg: 0x020205, // Deep Dark Blue/Black
             text: '#00ffff',
             border: 0xff00ff,
             accent: 0x00ffff
@@ -28,19 +28,19 @@ export const THEMES = {
             death: 0x00ffff
         }
     },
-    GOTHIC: {
-        id: 'GOTHIC',
-        name: 'GOTHIC SURVIVAL',
+    CRIMSON: {
+        id: 'CRIMSON',
+        name: 'CRIMSON VOID',
         font: 'Cinzel, serif',
         colors: {
-            primary: 0x880000,
+            primary: 0xff0000,
             secondary: 0xffaa00,
-            health: 0x660000,
-            xp: 0x000044,
-            bg: 0x050505,
+            health: 0xaa0000,
+            xp: 0xff4444,
+            bg: 0x050000, // Deep Dark Red/Black
             text: '#ffaa00',
-            border: 0xaa8800,
-            accent: 0xaa8800
+            border: 0xaa0000,
+            accent: 0xff0000
         },
         styles: {
             hpSegments: 0,
@@ -57,90 +57,32 @@ export const THEMES = {
             fog: true
         }
     },
-    MINIMAL: {
-        id: 'MINIMAL',
-        name: 'MODERN FLAT',
+    COSMIC: {
+        id: 'COSMIC',
+        name: 'DEEP SPACE',
         font: 'Inter, sans-serif',
         colors: {
-            primary: 0x333333,
-            secondary: 0xeeeeee,
-            health: 0xff4b4b,
-            xp: 0x4b79ff,
-            bg: 0xf5f5f5,
-            text: '#333333',
-            border: 0x333333,
-            accent: 0x4b79ff
+            primary: 0x4b79ff,
+            secondary: 0xffffff,
+            health: 0x4b79ff,
+            xp: 0xffffff,
+            bg: 0x000000, // Pure Black for max contrast
+            text: '#ffffff',
+            border: 0x4b79ff,
+            accent: 0xffffff
         },
         styles: {
             hpSegments: 0,
             hpRadius: 10,
             xpRadius: 10,
-            borderThickness: 0,
+            borderThickness: 2,
             hasDrip: false,
             ornamental: false,
             flat: true
         },
         particles: {
-            hit: 0xeeeeee,
-            death: 0xdddddd
-        }
-    },
-    PIXEL: {
-        id: 'PIXEL',
-        name: 'RETRO PIXEL',
-        font: '"Press Start 2P", cursive',
-        colors: {
-            primary: 0x00ff00,
-            secondary: 0xff0000,
-            health: 0xff0000,
-            xp: 0x0000ff,
-            bg: 0x111111,
-            text: '#ffffff',
-            border: 0xffffff,
-            accent: 0xffff00
-        },
-        styles: {
-            hpSegments: 5,
-            hpRadius: 0,
-            xpRadius: 0,
-            borderThickness: 4,
-            hasDrip: false,
-            ornamental: false,
-            pixelated: true
-        },
-        particles: {
-            hit: 0xffffff,
-            death: 0xffff00,
-            pixel: true
-        }
-    },
-    FANTASY: {
-        id: 'FANTASY',
-        name: 'DARK FANTASY',
-        font: 'MedievalSharp, cursive',
-        colors: {
-            primary: 0xaa00ff,
-            secondary: 0xc0c0c0,
-            health: 0xa30000,
-            xp: 0x4b0082,
-            bg: 0x0a0015,
-            text: '#c0c0c0',
-            border: 0x777777,
-            accent: 0xaa00ff
-        },
-        styles: {
-            hpSegments: 0,
-            hpRadius: 5,
-            xpRadius: 5,
-            borderThickness: 2,
-            hasDrip: false,
-            ornamental: true,
-            runes: true
-        },
-        particles: {
-            hit: 0xaa00ff,
-            death: 0x4b0082,
-            shimmer: true
+            hit: 0x4b79ff,
+            death: 0xffffff
         }
     }
 };

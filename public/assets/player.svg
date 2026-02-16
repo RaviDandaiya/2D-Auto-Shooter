@@ -1,0 +1,37 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Glow Effect -->
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#003366;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#001133;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Engine Trails (Conceptual placeholders for particles) -->
+  
+  <!-- Main Hull (Cyberpunk Ship Shape) -->
+  <g filter="url(#glow)">
+    <!-- Rear Wings -->
+    <path d="M 30,100 L 10,110 L 20,80 L 30,100 Z" fill="#000" stroke="#00ffff" stroke-width="2"/>
+    <path d="M 98,100 L 118,110 L 108,80 L 98,100 Z" fill="#000" stroke="#00ffff" stroke-width="2"/>
+    
+    <!-- Main Body -->
+    <path d="M 64,10 L 100,80 L 80,110 L 48,110 L 28,80 Z" fill="url(#bodyGrad)" stroke="#00ffff" stroke-width="3"/>
+    
+    <!-- Cockpit / Core -->
+    <circle cx="64" cy="65" r="12" fill="#000" stroke="#ff00ff" stroke-width="2"/>
+    <circle cx="64" cy="65" r="6" fill="#00ffff"/>
+    
+    <!-- Details -->
+    <line x1="64" y1="10" x2="64" y2="40" stroke="#00ffff" stroke-width="1"/>
+    <line x1="28" y1="80" x2="48" y2="110" stroke="#00ffff" stroke-width="1"/>
+    <line x1="100" y1="80" x2="80" y2="110" stroke="#00ffff" stroke-width="1"/>
+  </g>
+</svg>
